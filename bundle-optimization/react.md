@@ -5,15 +5,18 @@ React (وب)
 1. Code Splitting
 
 // مثال: بارگذاری یک کامپوننت فقط هنگام نیاز
-const LazyComponent = React.lazy(() => import('./MyComponent'));
+
+```tsx
+const LazyComponent = React.lazy(() => import("./MyComponent"));
 
 function App() {
-return (
-<React.Suspense fallback={<div>Loading...</div>}>
-<LazyComponent />
-</React.Suspense>
-);
+  return (
+    <React.Suspense fallback={<div>Loading...</div>}>
+      <LazyComponent />
+    </React.Suspense>
+  );
 }
+```
 
 توضیح:
 Code Splitting باعث می‌شود بخش‌های مختلف اپلیکیشن فقط زمانی لود شوند که کاربر به آن‌ها نیاز دارد، کاهش حجم اولیه باندل و افزایش سرعت بارگذاری.
@@ -21,7 +24,29 @@ Code Splitting باعث می‌شود بخش‌های مختلف اپلیکیش�
 2. Tree Shaking
 
 // مثال: import فقط چیزی که نیاز دارید
-import { Button } from 'ui-library'; // فقط Button اضافه می‌شود، نه کل کتابخانه
+
+```tsx
+import { Button } from "ui-library"; // فقط Button اضافه می‌شود، نه کل کتابخانه
+```
 
 توضیح:
 Tree Shaking کمک می‌کند تا کدهای بلااستفاده از باندل حذف شوند و حجم فایل نهایی کاهش یابد.
+
+3.Dynamic Imports
+
+```tsx
+const loadLib = async () => {
+  const { libraryFunction } = await import("some-large-library");
+  libraryFunction();
+};
+```
+
+# نکات تکمیلی
+
+فعال کردن React.memo برای جلوگیری از رندرهای غیرضروری
+
+استفاده از useCallback و useMemo برای بهینه‌سازی عملکرد
+
+فعال کردن compression در سرور برای فشرده‌سازی Gzip/Brotli
+
+استفاده از PWA و service workers برای caching
