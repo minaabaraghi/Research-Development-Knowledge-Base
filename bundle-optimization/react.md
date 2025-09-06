@@ -47,6 +47,4 @@ const loadLib = async () => {
 
 استفاده از useCallback و useMemo برای بهینه‌سازی عملکرد
 
-فعال کردن compression در سرور برای فشرده‌سازی Gzip/Brotli
-
 استفاده از PWA و service workers برای caching
