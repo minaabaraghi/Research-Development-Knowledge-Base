@@ -41,6 +41,14 @@ const loadLib = async () => {
 };
 ```
 
+4.Lazy Loading تصاویر
+
+```tsx
+<img src="large-image.jpg" alt="Example" loading="lazy" />
+```
+
+باعث کاهش مصرف پهنای باند و سرعت لود اولیه می‌شود.
+
 # نکات تکمیلی
 
 فعال کردن React.memo برای جلوگیری از رندرهای غیرضروری

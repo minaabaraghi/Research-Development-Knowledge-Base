@@ -1,4 +1,4 @@
-React Native Bundle Optimization Checklist
+## React Native Bundle Optimization Checklist
 
 React Native (موبایل)
 
@@ -20,3 +20,9 @@ transformer: {
 ramBundle: true,
 },
 };
+
+3.حذف کتابخانه‌های بلااستفاده
+
+جایگزین کردن کتابخانه‌های بزرگ با نسخه‌های سبک‌تر.
+
+مثال: استفاده از react-native-vector-icons/MaterialIcons به جای کل پکیج.
