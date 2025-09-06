@@ -11,9 +11,9 @@
 ## گام 1) نصب پکیج‌ها
 
 ```bash
-npm install jail-monkey react-native-device-info
+npm install jail-monkey
 # یا
-# yarn add jail-monkey react-native-device-info
+# yarn add jail-monkey
 
 cd ios && pod install && cd ..
 ```
@@ -26,7 +26,7 @@ cd ios && pod install && cd ..
 project/
 └── src/
     └── security/
-        └── RootCheck.ts        # کد TypeScript برای چک کردن Root/Jailbreak
+        └── RootCheck.ts        # کد TypeScript برای تشخیص Root/Jailbreak
 └── App.tsx                      # نمونه استفاده
 ```
 
@@ -34,34 +34,26 @@ project/
 
 ## گام 3) پیاده‌سازی RootCheck.ts
 
-```tsx
+```ts
 // src/security/RootCheck.ts
 import JailMonkey from "jail-monkey";
 
 export type RootCheckResult = {
   rooted: boolean;
-  reason: string[];
+  reasons: string[];
 };
 
 export function detectRoot(): RootCheckResult {
   const reasons: string[] = [];
 
-  if (JailMonkey.isJailBroken()) {
-    reasons.push("Device is Jailbroken / Rooted");
-  }
-  if (JailMonkey.hookDetected()) {
-    reasons.push("Hook framework detected (e.g., Frida)");
-  }
-  if (JailMonkey.canMockLocation()) {
-    reasons.push("Device can mock location");
-  }
-  if (JailMonkey.trustFall()) {
+  if (JailMonkey.isJailBroken()) reasons.push("Device is Jailbroken / Rooted");
+  if (JailMonkey.hookDetected()) reasons.push("Hook framework detected");
+  if (JailMonkey.trustFall())
     reasons.push("TrustFall indicates compromised device");
-  }
 
   return {
     rooted: reasons.length > 0,
-    reason: reasons,
+    reasons,
   };
 }
 ```
@@ -73,24 +65,48 @@ export function detectRoot(): RootCheckResult {
 ```tsx
 // App.tsx
 import React, { useEffect, useState } from "react";
-import { View, Text } from "react-native";
+import { View, Text, Alert, Button } from "react-native";
 import { detectRoot, RootCheckResult } from "./src/security/RootCheck";
 
 export default function App() {
-  const [result, setResult] = useState<RootCheckResult>();
+  const [result, setResult] = useState<RootCheckResult | null>(null);
+  const [paymentEnabled, setPaymentEnabled] = useState(true);
 
   useEffect(() => {
-    setResult(detectRoot());
+    const res = detectRoot();
+    setResult(res);
+
+    if (res.rooted) {
+      Alert.alert(
+        "هشدار امنیتی",
+        "دستگاه شما روت یا جیلبریک شده و استفاده از بخش‌های حساس محدود می‌شود."
+      );
+
+      setPaymentEnabled(false);
+    }
   }, []);
 
-  if (!result) return <Text>Checking...</Text>;
+  if (!result) return <Text>Checking device...</Text>;
 
   return (
     <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
       <Text>Rooted? {result.rooted ? "YES" : "NO"}</Text>
-      {result.reason.map((r, i) => (
+      {result.reasons.map((r, i) => (
         <Text key={i}>- {r}</Text>
       ))}
+
+      <View style={{ marginTop: 20 }}>
+        <Button
+          title="پرداخت"
+          onPress={() => Alert.alert("پرداخت انجام شد!")}
+          disabled={!paymentEnabled}
+        />
+        {!paymentEnabled && (
+          <Text style={{ marginTop: 10, color: "red" }}>
+            بخش پرداخت غیرفعال شد به دلیل Root/Jailbreak
+          </Text>
+        )}
+      </View>
     </View>
   );
 }
@@ -98,66 +114,41 @@ export default function App() {
 
 ---
 
-برای هماهنگی با بک‌اند (C# یا هر زبان دیگر)، می‌توانید نتیجه را به سرور ارسال کنید:
+## استفاده در کانتکست مرکزی
 
 ```tsx
-// src/security/report.ts
-import { Platform } from "react-native";
-import DeviceInfo from "react-native-device-info";
-import type { RootCheckResult } from "./RootCheck";
+// src/context/RootContext.tsx
+import React, { createContext, useState, useEffect, ReactNode } from "react";
+import { detectRoot, RootCheckResult } from "../security/RootCheck";
 
-export type SecurityReport = {
-  rooted: boolean;
-  reasons: string[];
-  platform: "android" | "ios";
-  appVersion: string;
+type RootContextType = {
+  result: RootCheckResult | null;
 };
 
-export async function buildSecurityReport(
-  result: RootCheckResult
-): Promise<SecurityReport> {
-  const appVersion = (await DeviceInfo.getVersion?.()) || "unknown";
-  return {
-    rooted: result.rooted,
-    reasons: result.reason,
-    platform: Platform.OS as "android" | "ios",
-    appVersion,
-  };
-}
+export const RootContext = createContext<RootContextType>({ result: null });
 
-export async function sendSecurityReport(
-  endpoint: string,
-  report: SecurityReport,
-  authToken?: string
-) {
-  await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-    },
-    body: JSON.stringify(report),
-  });
-}
-```
+export const RootProvider = ({ children }: { children: ReactNode }) => {
+  const [result, setResult] = useState<RootCheckResult | null>(null);
 
-و در `App.tsx`:
+  useEffect(() => {
+    const res = detectRoot();
+    setResult(res);
 
-```tsx
-import { buildSecurityReport, sendSecurityReport } from "./src/security/report";
+    if (res.rooted) {
+      // هشدار یک بار در کل اپ
+      alert("دستگاه شما روت/جیلبریک شده است.");
+    }
+  }, []);
 
-useEffect(() => {
-  const result = detectRoot();
-  setResult(result);
-  buildSecurityReport(result).then((report) =>
-    sendSecurityReport("https://your.api/api/security/verify", report)
+  return (
+    <RootContext.Provider value={{ result }}>{children}</RootContext.Provider>
   );
-}, []);
+};
 ```
 
----
+### توضیح
 
-- **اندروید:** استفاده از Play Integrity API برای امنیت بالاتر.
-- **iOS:** استفاده از App Attest برای اعتبارسنجی.
-
-این مرحله نیاز به همکاری تیم بک‌اند دارد تا توکن‌ها را بررسی کنند و تصمیم نهایی بگیرند.
+- فقط Root/Jailbreak detection با JailMonkey انجام می‌شود.
+- بخش حساس (پرداخت) اگر Root/Jailbreak باشد **غیرفعال می‌شود**.
+- هشدار به کاربر نمایش داده می‌شود.
+- هیچ وابستگی اضافه‌ای به DeviceInfo یا ارسال گزارش ندارد، همه چیز سمت فرانت‌اند ساده و قابل تست است.
